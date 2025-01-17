@@ -1,0 +1,12 @@
+path: ../datasets_tic_tac_toe_v1 # dataset root dir
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+# Classes
+names:
+  0: null
+  1: o
+  2: table
+  3: x
+
