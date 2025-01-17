@@ -7,11 +7,45 @@ import cv2
 import argparse
 import numpy as np
 
-from keras.models import load_model
+from tensorflow.python.keras.models import load_model
 
 from utils import imutils
 from utils import detections
 from alphabeta import Tic, get_enemy, determine
+import pyrealsense2 as rs
+
+# Configure depth and color streams
+pipeline = rs.pipeline()
+config = rs.config()
+
+# Load model
+model = load_model("/home/smr/tic-tac-toe/tic-tac-toe/data/model.h5")
+
+# Get device product line for setting a supporting resolution
+pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+pipeline_profile = config.resolve(pipeline_wrapper)
+device = pipeline_profile.get_device()
+device_product_line = str(device.get_info(rs.camera_info.product_line))
+
+found_rgb = False
+for s in device.sensors:
+    if s.get_info(rs.camera_info.name) == 'RGB Camera':
+        found_rgb = True
+        break
+if not found_rgb:
+    print("The demo requires Depth camera with Color sensor")
+    exit(0)
+
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+# Start streaming
+pipeline.start(config)
+
+
+
+
+
 
 
 def parse_arguments(argv):
@@ -27,16 +61,28 @@ def parse_arguments(argv):
 
 def find_sheet_paper(frame, thresh, add_margin=True):
     """Detect the coords of the sheet of paper the game will be played on"""
-    stats = detections.find_corners(thresh)
-    # First point is center of coordinate system, so ignore it
-    # We only want sheet of paper's corners
-    corners = stats[1:, :2]
-    corners = imutils.order_points(corners)
+    corners = None
+    while corners is None or len(corners) < 4:
+        stats = detections.find_corners(thresh)
+        # First point is center of coordinate system, so ignore it
+        # We only want sheet of paper's corners
+        corners = stats[1:, :2]
+        if len(corners) < 4:
+            # If not enough corners are found, you might want to adjust the threshold or other parameters
+            thresh = adjust_threshold(thresh)
+        else:
+            corners = imutils.order_points(corners)
+     
     # Get bird view of sheet of paper
     paper = imutils.four_point_transform(frame, corners)
     if add_margin:
         paper = paper[10:-10, 10:-10]
     return paper, corners
+
+def adjust_threshold(thresh):
+    # Implement your logic to adjust the threshold here
+    # For example, you might want to increase or decrease the threshold value
+    return thresh
 
 
 def find_shape(cell):
@@ -196,12 +242,100 @@ def play(vcap):
     return board.winner()
 
 
+def play_realsense(frame):
+    board = Tic()
+    history = {}
+    message = True
+    
+    while True:
+        key = cv2.waitKey(1) & 0xFF
+        # Preprocess input
+        # frame = imutils.resize(frame, 500)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 170, 255, cv2.THRESH_BINARY)
+        thresh = cv2.GaussianBlur(thresh, (7, 7), 0)
+        paper, corners = find_sheet_paper(frame, thresh)
+        # Four red dots must appear on each corner of the sheet of paper,
+        # otherwise try moving it until they're well detected
+        for c in corners:
+            cv2.circle(frame, tuple(c), 2, (0, 0, 255), 2)
+
+        # Now working with 'paper' to find grid
+        paper_gray = cv2.cvtColor(paper, cv2.COLOR_BGR2GRAY)
+        _, paper_thresh = cv2.threshold(
+            paper_gray, 170, 255, cv2.THRESH_BINARY_INV)
+        grid = get_board_template(paper_thresh)
+
+        # Draw grid and wait until user makes a move
+        for i, (x, y, w, h) in enumerate(grid):
+            cv2.rectangle(paper, (x, y), (x + w, y + h), (0, 0, 0), 2)
+            if history.get(i) is not None:
+                shape = history[i]['shape']
+                paper = draw_shape(paper, shape, (x, y, w, h))
+
+        # Make move
+        if message:
+            print('Make move, then press spacebar')
+            message = False
+        if not key == 32:
+            cv2.imshow('original', frame)
+            cv2.imshow('bird view', paper)
+            continue
+        player = 'X'
+
+        # User's time to play, detect for each available cell
+        # where has he played
+        available_moves = np.delete(np.arange(9), list(history.keys()))
+        for i, (x, y, w, h) in enumerate(grid):
+            if i not in available_moves:
+                continue
+            # Find what is inside each free cell
+            cell = paper_thresh[int(y): int(y + h), int(x): int(x + w)]
+            shape = find_shape(cell)
+            if shape is not None:
+                history[i] = {'shape': shape, 'bbox': (x, y, w, h)}
+                board.make_move(i, player)
+            paper = draw_shape(paper, shape, (x, y, w, h))
+
+        # Check whether game has finished
+        if board.complete():
+            break
+
+        # Computer's time to play
+        player = get_enemy(player)
+        computer_move = determine(board, player)
+        board.make_move(computer_move, player)
+        history[computer_move] = {'shape': 'O', 'bbox': grid[computer_move]}
+        paper = draw_shape(paper, 'O', grid[computer_move])
+
+        # Check whether game has finished
+        if board.complete():
+            break
+
+        # Show images
+        cv2.imshow('original', frame)
+        # cv2.imshow('thresh', paper_thresh)
+        cv2.imshow('bird view', paper)
+        message = True
+
+        # Show winner
+        winner = board.winner()
+        height = paper.shape[0]
+        text = 'Winner is {}'.format(str(winner))
+        cv2.putText(paper, text, (10, height - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        cv2.imshow('bird view', paper)
+        cv2.waitKey(0) & 0xFF
+
+        cv2.destroyAllWindows()
+        return board.winner()
+
+
+
 def main(args):
     """Check if everything's okay and start game"""
     # Load model
     global model
-    assert os.path.exists(args.model), '{} does not exist'
-    model = load_model(args.model)
 
     # Initialize webcam feed
     vcap = cv2.VideoCapture(args.cam)
@@ -215,4 +349,25 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+    try:
+        while True:
+
+            # Wait for a coherent pair of frames: depth and color
+            frames = pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            color_image = np.asanyarray(color_frame.get_data())
+            
+            play_realsense(color_image)
+            
+            
+
+            # # Show images
+            # cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+            # cv2.imshow('RealSense', color_image)
+            # cv2.waitKey(1)
+
+    finally:
+
+        # Stop streaming
+        pipeline.stop()
+        sys.exit()
