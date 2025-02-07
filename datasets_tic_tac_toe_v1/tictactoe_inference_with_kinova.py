@@ -323,8 +323,6 @@ def convert_grid_to_move(grid, current_squares):
 
 def main():
     detector = ElevatorPanelDetector(model_path, class_names, target_class)
-
-    #run command if spacebar is pressed
     play_game(detector)
 
 if __name__ == "__main__":

@@ -1,4 +1,0 @@
-keras
-numpy
-pillow
-opencv-contrib-python
