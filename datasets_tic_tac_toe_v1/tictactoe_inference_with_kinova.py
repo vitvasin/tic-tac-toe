@@ -259,7 +259,7 @@ def play_game(detector):
     
 
     while not board.complete():
-        player = 'x'
+        player = 'o'
         #show_player_move_popup()
         print('Processing frames to determine player move...')
         grid, pos = detector.process_frames()  # Get the 3x3 string grid
@@ -278,6 +278,11 @@ def play_game(detector):
         player = get_enemy(player)
         #show_computer_move_popup()
         computer_move = determine(board, player)
+        
+        #send the computer move to the robot
+        send_move_to_robot(computer_move, pos)
+        
+        
         board.make_move(computer_move, player)
         print("Computer move: ", computer_move)
         board.show()
@@ -287,6 +292,16 @@ def play_game(detector):
     show_winner_popup(board.winner())
     cv2.waitKey(2000)
     cv2.destroyAllWindows()
+    
+def send_move_to_robot(computer_move, pos):
+    # Get the center of the square
+    x, y, z = pos[computer_move // 3][computer_move % 3]
+    #convert the camera coordinate to robot coordinate
+    
+    print(f"Sending move to robot: {x}, {y}, {z}")
+    
+    # Send the move to the robot
+
 
 def show_winner_popup(winner):
     root = tk.Tk()
