@@ -347,21 +347,6 @@ def main():
 
     #run command if spacebar is pressed
     play_game(detector)
-    
-    # print("Press spacebar to run the detector")
-    # def on_press(key):
-    #     if key == keyboard.Key.space:
-    #         a = detector.process_frames()
-    #         for row in a:
-    #             print(row)
-    #         # for row in b:
-    #         #     print(row)
-    #         #return False  # Stop listener
-
-    # while True:
-    #     with keyboard.Listener(on_press=on_press) as listener:
-    #         listener.join() 
-    
 
 if __name__ == "__main__":
     main()
