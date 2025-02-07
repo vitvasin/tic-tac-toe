@@ -259,7 +259,7 @@ def play_game(detector):
     
 
     while not board.complete():
-        player = 'o'
+        player = 'x'
         #show_player_move_popup()
         print('Processing frames to determine player move...')
         grid, pos = detector.process_frames()  # Get the 3x3 string grid
