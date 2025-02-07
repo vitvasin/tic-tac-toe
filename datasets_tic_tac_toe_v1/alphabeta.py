@@ -43,16 +43,16 @@ class Tic(object):
         return False
 
     def X_won(self):
-        return self.winner() == 'X'
+        return self.winner() == 'x'
 
     def O_won(self):
-        return self.winner() == 'O'
+        return self.winner() == 'o'
 
     def tied(self):
-        return self.complete() and self.winner() is None
+        return self.complete() and self.winner() =='Draw'
 
     def winner(self):
-        for player in ('X', 'O'):
+        for player in ('x', 'o'):
             positions = self.get_squares(player)
             for combo in self.winning_combos:
                 win = True
@@ -84,7 +84,7 @@ class Tic(object):
             node.make_move(move, player)
             val = self.alphabeta(node, get_enemy(player), alpha, beta)
             node.make_move(move, None)
-            if player == 'O':
+            if player == 'o':
                 if val > alpha:
                     alpha = val
                 if alpha >= beta:
@@ -94,13 +94,13 @@ class Tic(object):
                     beta = val
                 if beta <= alpha:
                     return alpha
-        return alpha if player == 'O' else beta
+        return alpha if player == 'o' else beta
 
 
 def get_enemy(player):
-    if player == 'X':
-        return 'O'
-    return 'X'
+    if player == 'x':
+        return 'o'
+    return 'x'
 
 
 def determine(board, player):
