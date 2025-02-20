@@ -4,7 +4,6 @@ import pyrealsense2 as rs
 import numpy as np
 import threading
 import logging
-from pynput import keyboard
 import tkinter as tk
 from tkinter import messagebox
 from alphabeta import Tic, get_enemy, determine
@@ -12,7 +11,7 @@ from alphabeta import Tic, get_enemy, determine
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-model_path = "/home/vitvasin/ultralytics/tic-tac-toe_test_yolo/datasets_tic_tac_toe_v1/best_tictactoe_v1.pt"
+model_path = "/home/stu/tic-tac-toe_test_yolo_20.2.2025/tic-tac-toe_test_yolo/datasets_tic_tac_toe_v1/best_tictactoe_v1.pt"
 class_names = ['None', 'o', 'table', 'x']
 #symbol_names = ['null', 'o', 'x']
 target_class = 'table'
@@ -34,8 +33,8 @@ class ElevatorPanelDetector:
         #self.symbol_names = symbol_names
         self.pipeline = rs.pipeline()
         self.config = rs.config()
-        self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 15)
-        self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 15)
+        self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+        self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
         self.pipeline.start(self.config)
         self.depth_scale = self.pipeline.get_active_profile().get_device().first_depth_sensor().get_depth_scale()
         self.stop_event = threading.Event()
@@ -52,7 +51,7 @@ class ElevatorPanelDetector:
                 depth_image = np.asanyarray(depth_frame.get_data())
                 color_image = np.asanyarray(color_frame.get_data())
 
-                results = self.model(source=color_image, conf=0.8, verbose=False, show=False)
+                results = self.model(source=color_image, conf=0.8, verbose=True, show=True)
                 
                # print(results)
                 for result in results:
@@ -243,19 +242,19 @@ def play_game(detector):
     board.show()
     
     # Check if the board from camera is empty or not
-    grid, pos = detector.process_frames()
-    if all(cell == 'None' for row in grid for cell in row):
-        print("Detected board is empty")
-    else:
-        print("Detected board is not empty")
-        return "Please clean the board before starting the game"
+    # grid, pos = detector.process_frames()
+    # if all(cell == 'None' for row in grid for cell in row):
+    #     print("Detected board is empty")
+    # else:
+    #     print("Detected board is not empty")
+    #     return "Please clean the board before starting the game"
     
     
     
-    if board.squares == [None, None, None, None, None, None, None, None, None]:
-        print("Board is empty")
-    else:
-        print("Board is not empty")
+    # if board.squares == [None, None, None, None, None, None, None, None, None]:
+    #     print("Board is empty")
+    # else:
+    #     print("Board is not empty")
     
 
     while not board.complete():

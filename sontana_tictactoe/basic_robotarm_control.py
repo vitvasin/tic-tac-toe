@@ -54,7 +54,7 @@ def example_move_to_home_position(base):
     action_list = base.ReadAllActions(action_type)
     action_handle = None
     for action in action_list.action_list:
-        if action.name == "Home":
+        if action.name == "Sontana":
             action_handle = action.handle
 
     if action_handle == None:
@@ -120,7 +120,7 @@ def example_angular_action_test(base):
 
     actuator_count = base.GetActuatorCount()
 
-    joint_values = [322,291,235,137,305,50] # Example values for each joint
+    joint_values = [92,288,210,98,347,269] # Example values for each joint
 
     for joint_id in range(actuator_count.count):
         joint_angle = action.reach_joint_angles.joint_angles.joint_angles.add()
@@ -272,7 +272,7 @@ def draw_cross_XZ(base, base_cyclic, radius, num_points):
     theta_y = feedback.base.tool_pose_theta_y
     theta_z = feedback.base.tool_pose_theta_z
     
-    move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
+    move_robot_arm_to(base, base_cyclic, center_x, center_y+0.03, center_z, theta_x, theta_y, theta_z)
     time.sleep(1)
 
     # Calculate points for the cross
@@ -283,18 +283,18 @@ def draw_cross_XZ(base, base_cyclic, radius, num_points):
     for i in range(-num_points // 2, num_points // 2 + 1):
         if i == 0:
             continue
-        cross_points.append((center_y + i * step, center_z + i * step))
+        cross_points.append((center_x + i * step, center_z + i * step))
     
     for point in cross_points:
-        y, z = point
-        success = move_robot_arm_to(base, base_cyclic, center_x, y, z, theta_x, theta_y, theta_z)
+        x, z = point
+        success = move_robot_arm_to(base, base_cyclic, x, center_y, z, theta_x, theta_y, theta_z)
         if not success:
             print("Failed to move to point:", point)
             break
         #time.sleep(0.01)
 
     # Move back to center before drawing the second diagonal line
-    success = move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
+    #success = move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
     if not success:
         print("Failed to move back to center")
         return
@@ -305,22 +305,22 @@ def draw_cross_XZ(base, base_cyclic, radius, num_points):
     for i in range(-num_points // 2, num_points // 2 + 1):
         if i == 0:
             continue
-        cross_points.append((center_y + i * step, center_z - i * step))
+        cross_points.append((center_x + i * step, center_z - i * step))
 
     for point in cross_points:
-        y, z = point
-        success = move_robot_arm_to(base, base_cyclic, center_x, y, z, theta_x, theta_y, theta_z)
+        x, z = point
+        success = move_robot_arm_to(base, base_cyclic, x, center_y, z, theta_x, theta_y, theta_z)
         if not success:
             print("Failed to move to point:", point)
             break
         #time.sleep(0.01)
 
     print("Finished drawing cross on XZ plane")
-    move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
+    #move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
 
 def draw_circle_with_twist_command(base,base_cyclic, radius, duration):
     
-    print("Starting Cartesian action movement to draw cross ...")
+    print("Starting Cartesian action movement to draw circle ...")
     
     feedback = base_cyclic.RefreshFeedback()
     center_x = feedback.base.tool_pose_x
@@ -330,26 +330,27 @@ def draw_circle_with_twist_command(base,base_cyclic, radius, duration):
     theta_y = feedback.base.tool_pose_theta_y
     theta_z = feedback.base.tool_pose_theta_z
     
-    move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
-    time.sleep(0.5)
-    move_robot_arm_to(base, base_cyclic, center_x, center_y+0.02, center_z, theta_x, theta_y, theta_z)
-    time.sleep(0.5)
+    # move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
+    # time.sleep(0.5)
+    # move_robot_arm_to(base, base_cyclic, center_x, center_y+0.02, center_z, theta_x, theta_y, theta_z)
+    # time.sleep(0.5)
     
     command = Base_pb2.TwistCommand()
-    command.reference_frame = Base_pb2.CARTESIAN_REFERENCE_FRAME_MIXED
+    command.reference_frame = Base_pb2.CARTESIAN_REFERENCE_FRAME_TOOL
     command.duration = 0
 
     twist = command.twist
-    twist.linear_x = 0
+    #twist.linear_y = 0
+    twist.linear_z = 0
     twist.angular_x = 0
     twist.angular_y = 0
     twist.angular_z = 0
     start_time = time.time()
     while time.time() - start_time < duration:
         elapsed_time = time.time() - start_time
-        twist.linear_y = radius * math.cos(2 * math.pi * elapsed_time / duration)
-        twist.linear_z = radius * math.sin(2 * math.pi * elapsed_time / duration)
-        twist.angular_x = 2 * math.pi / duration
+        twist.linear_x = radius * math.cos(2 * math.pi * elapsed_time / duration)
+        twist.linear_y = radius * math.sin(2 * math.pi * elapsed_time / duration)
+        #twist.angular_x = 2 * math.pi / duration
 
         base.SendTwistCommand(command)
         #time.sleep(0.1)  # Adjust the sleep time as needed
@@ -358,9 +359,9 @@ def draw_circle_with_twist_command(base,base_cyclic, radius, duration):
     base.Stop()
     time.sleep(1)
     
-    move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
-    time.sleep(0.5)
-    move_robot_arm_to(base, base_cyclic, center_x, center_y, center_z, theta_x, theta_y, theta_z)
+    # move_robot_arm_to(base, base_cyclic, center_x+0.05, center_y, center_z, theta_x, theta_y, theta_z)
+    # time.sleep(0.5)
+    # move_robot_arm_to(base, base_cyclic, center_x, center_y, center_z, theta_x, theta_y, theta_z)
 
     return True
 
@@ -385,42 +386,13 @@ def main():
         # Example core
         success = True
 
-        #success &= example_move_to_home_position(base)
-        #success &= example_cartesian_action_movement(base, base_cyclic)
-        #success &= example_angular_action_movement(base)
-        #delay 5 sec
-        #time.sleep(5)
-        success &= example_angular_action_test(base)
+        success &= example_move_to_home_position(base)
         time.sleep(1)
-        #move_robot_arm_to(base, base_cyclic, -0.4, 0.015, 0.38, -120, 80, 60)
-        #success &= circle_trajectory(base, base_cyclic,0.1,10)
-        
-        
-        
-        # feedback = base_cyclic.RefreshFeedback()
-
-        # X= feedback.base.tool_pose_x          # (meters)
-        # Y = feedback.base.tool_pose_y    # (meters)
-        # Z = feedback.base.tool_pose_z     # (meters)
-        # RX = feedback.base.tool_pose_theta_x # (degrees)
-        # RY = feedback.base.tool_pose_theta_y # (degrees)
-        # RZ = feedback.base.tool_pose_theta_z # (degrees)
-        
-        # print(X,Y,Z,RX,RY,RZ)
-        # time.sleep(2)
-        # draw_circle_XZ(base, base_cyclic, 0.02, 16)
-        # # #time.sleep(2)
-        # draw_cross_XZ(base, base_cyclic, 0.01, 2)
+        move_robot_arm_to(base, base_cyclic, 0.11, -0.30,0.29, -150, 90, 120)
+        time.sleep(1)
+        draw_cross_XZ(base, base_cyclic, 0.01, 2)
         time.sleep(2)
-        draw_circle_with_twist_command(base,base_cyclic, 0.15, 1)
-        #time.sleep(2)
-        #draw_cross_XZ(base, base_cyclic, 0.01, 2)
-        #note 
-        # joint_values = [334,284,225,128,316,318] # Example values for each joint
-        #pose = [-179,15,384,120,80,60]
-
-        # You can also refer to the 110-Waypoints examples if you want to execute
-        # a trajectory defined by a series of waypoints in joint space or in Cartesian space
+        draw_circle_with_twist_command(base,base_cyclic, 0.05, 2)
 
         return 0 if success else 1
 

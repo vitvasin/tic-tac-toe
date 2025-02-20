@@ -4,7 +4,6 @@ import pyrealsense2 as rs
 import numpy as np
 import threading
 import logging
-from pynput import keyboard
 import tkinter as tk
 from tkinter import messagebox
 from alphabeta import Tic, get_enemy, determine
@@ -12,7 +11,7 @@ from alphabeta import Tic, get_enemy, determine
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-model_path = "/home/vitvasin/ultralytics/tic-tac-toe_test_yolo/datasets_tic_tac_toe_v1/best_tictactoe_v1.pt"
+model_path = "/home/stu/tic-tac-toe_test_yolo_20.2.2025/tic-tac-toe_test_yolo/datasets_tic_tac_toe_v1/best_tictactoe_v1.pt"
 class_names = ['None', 'o', 'table', 'x']
 #symbol_names = ['null', 'o', 'x']
 target_class = 'table'
@@ -40,16 +39,20 @@ class ElevatorPanelDetector:
         self.depth_scale = self.pipeline.get_active_profile().get_device().first_depth_sensor().get_depth_scale()
         self.stop_event = threading.Event()
         
-    def image_to_real_world(x, y, depth_frame, depth_intrinsics):
+    def image_to_real_world(self, x, y, depth_frame, depth_intrinsics):
         # Get the depth value at the given image coordinates
         depth = depth_frame.get_distance(x, y)
+        pixel = [x,y]
         
         # Convert the image coordinates and depth value to real-world coordinates
-        real_world_coordinates = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x, y], depth)
+        real_world_coordinates = rs.rs2_deproject_pixel_to_point(depth_intrinsics, pixel, depth)
+        
         return real_world_coordinates
 
 
-    def process_frames(self):
+
+
+    def process_frames_calib(self):
         try:
             while not self.stop_event.is_set():
                 frames = self.pipeline.wait_for_frames()
@@ -63,7 +66,7 @@ class ElevatorPanelDetector:
                 depth_image = np.asanyarray(depth_frame.get_data())
                 color_image = np.asanyarray(color_frame.get_data())
 
-                results = self.model(source=color_image, conf=0.8, verbose=False, show=False)
+                results = self.model(source=color_image, conf=0.8, verbose=False, show=True)
                 
                # print(results)
                 for result in results:
@@ -143,24 +146,35 @@ class ElevatorPanelDetector:
                                     
                                 #debug by dot the center_x, center_y on mask
                                 for symbol in detected_symbols:
-                                    center_x, center_y, center_z = symbol['real_world_position']
-                                    label = symbol['class'] + '\n' +str(symbol['real_world_position'])
+                                    center_x, center_y = symbol['center']
+                                    real_world_position = tuple(round(coord, 2) for coord in symbol['real_world_position'])
+                                    label = str(real_world_position)
                                     
                                     cv2.circle(mask, (center_x, center_y), 5, (0, 255, 0), -1)
                                     #also add the label of class
-                                    cv2.putText(mask, label, (center_x, center_y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), 1)
+                                    #cv2.putText(mask, label, (center_x, center_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
                                     
-                                cv2.imshow("debug",mask)
+                                #cv2.imshow("debug",mask)
                                 
                                 # check if center_y is in the range of +- 20 pixels then put them in the same row
                                 detected_symbols.sort(key=lambda symbol: symbol['center'][1])
                                 #print("sort on center_y")
-                               # for symbol in detected_symbols:
-                                #    print(symbol['class'] + " at " + str(symbol['center']))
+                               
                                 
                                 #sort center_x in each row individually
                                 for i in range(0, len(detected_symbols), 3):
                                     detected_symbols[i:i+3] = sorted(detected_symbols[i:i+3], key=lambda symbol: symbol['center'][0])
+                                    
+                                # Show the image with only position number 5 after sorted
+                                if len(detected_symbols) > 4:
+                                    center_x, center_y = detected_symbols[4]['center']
+                                    real_world_position = detected_symbols[4]['real_world_position']
+                                    cv2.circle(mask, (center_x, center_y), 10, (0, 0, 255), -1)
+                                    label = f"({real_world_position[0]:.2f}, {real_world_position[1]:.2f}, {real_world_position[2]:.2f})"
+                                    cv2.putText(mask, label, (center_x, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                                    cv2.imshow("Position 5", mask)
+                                    print(f"Position 5 real-world coordinates: {real_world_position}")
+                                    cv2.waitKey(1)
                                 
                                 # Extract class names
                                 board_status = [symbol['class'] for symbol in detected_symbols]
@@ -203,7 +217,7 @@ class ElevatorPanelDetector:
                                         # for row in grid:
                                         #     print(row)
                                         
-                                        return self.save_grid, self.save_symbol_pos
+                                        #return self.save_grid, self.save_symbol_pos
                                     
                                     
 
@@ -351,7 +365,10 @@ def convert_grid_to_move(grid, current_squares):
 
 def main():
     detector = ElevatorPanelDetector(model_path, class_names, target_class)
-    play_game(detector)
+    #play_game(detector)
+    # while True:
+    detector.process_frames_calib()
+    #detector.process_frames()
 
 if __name__ == "__main__":
     main()

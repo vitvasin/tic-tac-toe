@@ -59,7 +59,7 @@ def main():
     with utilities.DeviceConnection.createTcpConnection(args) as router:
 
         # Create required services
-        device_manager = DeviceManagerClient(router)
+        #device_manager = DeviceManagerClient(router)
         device_config = DeviceConfigClient(router)
 
         # Example core
