@@ -4,7 +4,6 @@ import pyrealsense2 as rs
 import numpy as np
 import threading
 import logging
-from pynput import keyboard
 import tkinter as tk
 from tkinter import messagebox
 from alphabeta import Tic, get_enemy, determine
