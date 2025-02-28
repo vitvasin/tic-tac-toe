@@ -42,7 +42,11 @@
 
 import sys
 import os
-
+from collections.abc import MutableMapping
+from collections.abc import MutableSequence
+import collections
+collections.MutableMapping = collections.abc.MutableMapping
+collections.MutableSequence = collections.abc.MutableSequence
 from kortex_api.autogen.client_stubs.DeviceManagerClientRpc import DeviceManagerClient
 from kortex_api.autogen.client_stubs.DeviceConfigClientRpc import DeviceConfigClient
 

@@ -13,6 +13,12 @@
 ###
 import math
 import sys
+
+from collections.abc import MutableMapping
+from collections.abc import MutableSequence
+import collections
+collections.MutableMapping = collections.abc.MutableMapping
+collections.MutableSequence = collections.abc.MutableSequence
 import os
 import time
 import threading
@@ -206,6 +212,8 @@ def move_robot_arm_to(base, base_cyclic, x, y, z, theta_x, theta_y, theta_z):
     action = Base_pb2.Action()
     action.name = "Move to point"
     action.application_data = ""
+    
+    base.reference_frame = Base_pb2.CARTESIAN_REFERENCE_FRAME_BASE
 
     feedback = base_cyclic.RefreshFeedback()
 
@@ -387,12 +395,16 @@ def main():
         success = True
 
         success &= example_move_to_home_position(base)
-        time.sleep(1)
-        move_robot_arm_to(base, base_cyclic, 0.11, -0.30,0.29, -150, 90, 120)
-        time.sleep(1)
-        draw_cross_XZ(base, base_cyclic, 0.01, 2)
-        time.sleep(2)
-        draw_circle_with_twist_command(base,base_cyclic, 0.05, 2)
+       # time.sleep(1)
+       # move_robot_arm_to(base, base_cyclic, 0.10, -0.30,0.30, 100, 100, 20)
+       # time.sleep(2)
+       # move_robot_arm_to(base, base_cyclic, 0.10, -0.5,0.30, 100, 100, 20)
+       # time.sleep(2)
+       # move_robot_arm_to(base, base_cyclic, 0.10, -0.30,0.30, 100, 100, 20)
+        # time.sleep(1)
+        # draw_cross_XZ(base, base_cyclic, 0.01, 2)
+        # time.sleep(2)
+        # draw_circle_with_twist_command(base,base_cyclic, 0.05, 2)
 
         return 0 if success else 1
 
